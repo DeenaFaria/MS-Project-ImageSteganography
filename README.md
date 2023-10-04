@@ -1,5 +1,6 @@
 Steganography Project
-Description
+
+Description:
 This project demonstrates a simple steganography implementation, allowing you to hide secret text within an image using LSB (Least Significant Bit) encoding. It provides functionalities to both encode and decode hidden messages within image files.
 
 Features
