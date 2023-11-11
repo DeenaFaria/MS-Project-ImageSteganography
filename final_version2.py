@@ -87,6 +87,7 @@ def encode(input_filepath,text,output_filepath,avg,password=None,progressBar=Non
     else:
         data = text
     lm=len(data) #length of the message
+    print("Length of Message: "+str(lm))
     data_length = bin(len(data))[2:].zfill(32)
     
 
@@ -114,38 +115,33 @@ def encode(input_filepath,text,output_filepath,avg,password=None,progressBar=Non
         j=avg-i*width*3
         i=i+1
         ini=avg #seed point
-        print("Your Stego Key: "+str(avg))
+        #print("Your Stego Key: "+str(avg))
     else:
         i=k1
         j=k1
         avg=k1
         ini=k1 #seed point
-        print("Your Stego Key: "+str(k1))
+        #print("Your Stego Key: "+str(k1))
 
  
     lp=encoding_capacity-avg 
     
     embedding_rounds = int(math.sqrt(lp - lm))
     pixel_jump = int(lp/lm)
+    print(pixel_jump)
 
     
     embedding_counter = 0
-    print("Embedding Round is "+str(embedding_rounds))
+    #print("Embedding Round is "+str(embedding_rounds))
 
     start_time = time.time()  # Record the start time
     last_update_time = start_time
     update_interval = 0.5  # Update progress every 0.5 seconds
 
     for _ in range(embedding_rounds):
-        #bit = (img[ini - 2] + img[ini - 1]) % 2  # Calculate the bit value
 
-        #if bit.any() == 0:
-            #i += 1  # Move to the next pixel
-    
         for i in range(height):
-            bit = (img[i - 2] + img[i - 1]) % 2
-            if bit.all() == 0:
-               i += 1  # Move to the next pixel
+          
             for j in range(width):
                 pixel = img[i,j]
                 for k in range(3):
@@ -160,6 +156,8 @@ def encode(input_filepath,text,output_filepath,avg,password=None,progressBar=Non
                     elif x=='1' and pixel[k]%2==0:
                         pixel[k] += 1
                         modified_bits += 1
+
+                    k=k+pixel_jump    
                     if progressBar != None: #If progress bar object is passed
                
                         progressBar.setValue(progress*100)
@@ -189,7 +187,7 @@ def encode(input_filepath,text,output_filepath,avg,password=None,progressBar=Non
     return written
 
 #Extracts secret data from input image
-def decode(em,avg,input_filepath,password=None,progressBar=None):
+def decode(lm,avg,input_filepath,password=None,progressBar=None):
     result,extracted_bits,completed,number_of_bits = '',0,False,None
     
 
@@ -197,27 +195,43 @@ def decode(em,avg,input_filepath,password=None,progressBar=None):
     if img is None:
         raise FileError("The image file '{}' is inaccessible".format(input_filepath))
     height,width = img.shape[0],img.shape[1]
-    i=avg
-    j=avg
-    ini=avg
+    encoding_capacity = height*width*3
+    k1=avg #user provided stego key
     
-    embedding_rounds = em
+
+    if lm<=(encoding_capacity-avg):
+        avg=(encoding_capacity)%lm #define a new stego key
+        i=int(avg/width)/3
+        j=avg-i*width*3
+        i=i+1
+        ini=avg #seed point
+        #print("Your Stego Key: "+str(avg))
+    else:
+        i=k1
+        j=k1
+        avg=k1
+        ini=k1 #seed point
+        #print("Your Stego Key: "+str(k1))
+
+ 
+    lp=encoding_capacity-avg 
+    
+    embedding_rounds = int(math.sqrt(lp - lm))
+    pixel_jump = int(lp/lm)
+    print(pixel_jump)
+
+    
     embedding_counter = 0
+    #print("Embedding Round is "+str(embedding_rounds))
 
     for _ in range(embedding_rounds):
-        #bit = (img[ini - 2] + img[ini - 1]) % 2  # Calculate the bit value
-
-        #if bit.any() == 0:
-         #   i += 1  # Move to the next pixel
-        
         for i in range(height):
-            bit = (img[i - 2] + img[i - 1]) % 2
-            if bit.all() == 0:
-               i += 1  # Move to the next pixel
+
             for j in range(width):
                 for k in img[i,j]:
                     result += str(k%2)
                     extracted_bits += 1
+                    k=pixel_jump
                     if progressBar != None and number_of_bits != None: #If progress bar object is passed
                         progressBar.setValue(100*(extracted_bits/number_of_bits))
                     if extracted_bits == 32 and number_of_bits == None: #If the first 32 bits are extracted, it is our data size. Now extract the original data
@@ -281,11 +295,12 @@ if __name__ == "__main__":
         ip_file = input('Enter image path: ')
         ip_file=decom(ip_file)
         pwd = input('Enter password: ')
-        stego = int(input('Enter Stego key: '))
-        em = int(input('Enter the number of embedding rounds (if any): '))
+        stego = input('Enter Stego key: ')
+        stego=avg(stego)
+        lm = int(input('Enter the length of the message: '))
 
         try:
-            data = decode(em,stego,ip_file,pwd)
+            data = decode(lm,stego,ip_file,pwd)
         except FileError as fe:
             print("Error: {}".format(fe))
         except PasswordError as pe:
